@@ -41,7 +41,7 @@ public class Node implements Runnable {
     /**
      * Finds a key on the circle.
      *
-     * @param key
+     * @param key an integer relative to a certain key of the circle (between 0 and 255).
      */
     public void find(int key) {
 
