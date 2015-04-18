@@ -6,7 +6,8 @@
  */
 public class Main {
 
-    public static final int TOTAL_KEYS = 256;
+    public static final int BITS = 8;
+    public static final int TOTAL_KEYS = ((Double) Math.pow(2, BITS)).intValue();
     public static final String HOST = "localhost:90";
 
     /**

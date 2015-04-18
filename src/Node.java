@@ -12,8 +12,9 @@ public class Node implements Runnable {
     /**
      * Creates a Node thread and sets its initial finger table.
      */
-    public Node() {
-        fingerTable = new Integer[8];
+    public Node(int identifier) {
+        this.identifier = identifier;
+        fingerTable = new Integer[Main.BITS];
         predecessor = identifier;
     }
 
@@ -36,6 +37,8 @@ public class Node implements Runnable {
      */
     public void join(int predecessor) {
         this.predecessor = predecessor;
+        recalculateFingerTable();
+        broadcast("joined " + identifier);
     }
 
     /**
@@ -43,8 +46,35 @@ public class Node implements Runnable {
      *
      * @param key an integer relative to a certain key of the circle (between 0 and 255).
      */
-    public void find(int key) {
+    public int find(int key) {
 
+        if (key <= identifier && key > predecessor) {
+            System.out.println("Key stored in " + identifier);
+            return identifier;
+        }
+        else {
+            System.out.println("Key will be search on finger table");
+        }
+
+        Integer max = null;
+        for (int k = 0; k < Main.BITS; k++) {
+            if (k <= key) {
+                if((max != null && max < k) || max == null) {
+                    max = k;
+                }
+            }
+        }
+        // Call
+        if (max == null) {
+            //call find on successor
+            System.out.println("Next node: successor");
+            return findKeyOn(key, fingerTable[0]);
+        }
+        else {
+            //call find on node max
+            System.out.println("Next node: " + max);
+            return findKeyOn(key, max);
+        }
     }
 
     /**
@@ -70,7 +100,10 @@ public class Node implements Runnable {
      * Called by a new node that just entered. It should update its finger table to reflect the new node added.
      */
     public void nodeEntered(int node) {
-
+        if (predecessor < node) {
+            predecessor = node;
+        }
+        recalculateFingerTable();
     }
 
     /**
@@ -87,4 +120,14 @@ public class Node implements Runnable {
     private void recalculateFingerTable() {
 
     }
+
+    private void broadcast(String message) {
+
+    }
+
+    private int findKeyOn(int key, int node) {
+        return 0;
+    }
+
+
 }
