@@ -27,7 +27,6 @@ public class Node {
     /**
      * Runs the chord.Node thread.
      */
-
     private class Listener extends Thread {
         @Override
         public void run() {
@@ -173,21 +172,33 @@ public class Node {
      */
     public void show() {
         System.out.println("HI");
-        //TODO wait piazza response
-        int firstKey = (predecessor + 1) % 256;
-        int lastKey = predecessor < identifier ? identifier : identifier + 256;
-        boolean first = true;
+        System.out.println(storedKeys(identifier, predecessor, Main.TOTAL_KEYS));
+    }
 
+    /**
+     * Gets all keys stored in a node given its ID and its predecessor.
+     *
+     * @param nodeID    the node ID.
+     * @param prevID    the predecessor ID.
+     * @param totalKeys the total number of keys in the system.
+     * @return a string containing all keys separated by spaces.
+     */
+    public String storedKeys(int nodeID, int prevID, int totalKeys) {
+        //TODO wait piazza response
+        int firstKey = (prevID + 1) % totalKeys;
+        int lastKey = prevID < nodeID ? nodeID : nodeID + totalKeys;
+        boolean first = true;
+        String stored = null;
         for (int key = firstKey; key <= lastKey; key++) {
-            int modularKey = key % 256;
+            Integer modularKey = key % totalKeys;
             if (first) {
-                System.out.print(modularKey);
+                stored = modularKey.toString();
                 first = false;
             } else {
-                System.out.print(" " + modularKey);
+                stored += " " + modularKey.toString();
             }
         }
-        System.out.println();
+        return stored;
     }
 
     /**
