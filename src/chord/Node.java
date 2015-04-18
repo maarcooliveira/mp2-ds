@@ -1,10 +1,12 @@
+package chord;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * Defines behavior for Node thread. A node stores keys usually represented on a circle, and maps which node to check to
- * find a certain key by using a finger table.
+ * Defines behavior for chord.Node thread. A node stores keys usually represented on a circle, and maps which node to
+ * check to find a certain key by using a finger table.
  *
  * @author Marco Andre de Oliveira <mdeoliv2@illinois.edu>
  * @version 1.0
@@ -14,7 +16,7 @@ public class Node {
     Integer[] fingerTable;
 
     /**
-     * Creates a Node thread and sets its initial finger table.
+     * Creates a chord.Node thread and sets its initial finger table.
      */
     public Node(int identifier) {
         this.identifier = identifier;
@@ -23,7 +25,7 @@ public class Node {
     }
 
     /**
-     * Runs the Node thread.
+     * Runs the chord.Node thread.
      */
 
     private class Listener extends Thread {
@@ -41,6 +43,7 @@ public class Node {
                     BufferedReader receivedMessage = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     String[] listArgs = receivedMessage.readLine().split(" ");
                     System.out.println("CMD: " + listArgs[0]);
+
                     // join p
                     if (listArgs[0].equals("join")) {
                         joinNode();
@@ -64,24 +67,28 @@ public class Node {
                         show();
                     }
 
-                    else if(listArgs[0].equals("joined")) {
+                    //
+                    else if (listArgs[0].equals("joined")) {
                         int node = Integer.parseInt(listArgs[1]);
                         nodeEntered(node);
                     }
 
-                    else if(listArgs[0].equals("left")) {
+                    //
+                    else if (listArgs[0].equals("left")) {
                         int node = Integer.parseInt(listArgs[1]);
                         nodeLeft(node);
                     }
 
-                    else if(listArgs[0].equals("predecessor")) {
+                    //
+                    else if (listArgs[0].equals("predecessor")) {
                         System.out.println("*WILL GET PRED of " + identifier);
                         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                         writer.write(getPredecessor());
                         writer.flush();
                     }
 
-                    else if(listArgs[0].equals("successor")) {
+                    //
+                    else if (listArgs[0].equals("successor")) {
                         System.out.println("*WILL GET SUC of " + identifier);
                         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
                         writer.write(getSuccessor());
@@ -98,15 +105,13 @@ public class Node {
     }
 
     /**
-     * Makes the Node thread join the circle of 256 keys.
-     *
+     * Makes the chord.Node thread join the circle of 256 keys.
      */
     public void joinNode() {
         if (identifier != 0) {
             successor = 0; //findKeyOn(identifier, 0);
             predecessor = 0; //getPredecessorOf(successor);
-        }
-        else {
+        } else {
             successor = 0;
             predecessor = 0;
         }
@@ -132,15 +137,14 @@ public class Node {
         if (key <= identifier && key > predecessor) {
             System.out.println("Key stored in " + identifier);
             return identifier;
-        }
-        else {
+        } else {
             System.out.println("Key will be search on finger table");
         }
 
         Integer max = null;
         for (int k = 0; k < Main.BITS; k++) {
             if (k <= key) {
-                if((max != null && max < k) || max == null) {
+                if ((max != null && max < k) || max == null) {
                     max = k;
                 }
             }
@@ -150,8 +154,7 @@ public class Node {
             //call find on successor
             System.out.println("Next node: successor");
             return findKeyOn(key, fingerTable[0]);
-        }
-        else {
+        } else {
             //call find on node max
             System.out.println("Next node: " + max);
             return findKeyOn(key, max);
@@ -223,7 +226,7 @@ public class Node {
         for (int bit = 0; bit < Main.BITS; bit++) {
             int key = (identifier + ((Double) Math.pow(2, bit)).intValue()) % Main.TOTAL_KEYS;
 //            if (node == 0) {
-                fingerTable[bit] = 0;
+            fingerTable[bit] = 0;
 //            }
 //            else {
 //                fingerTable[bit] = findKeyOn(key, 0);
@@ -270,6 +273,5 @@ public class Node {
         }
         return null;
     }
-
 
 }

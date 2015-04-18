@@ -1,3 +1,5 @@
+package chord;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -5,7 +7,7 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 
 /**
- * Defines behavior for Coordinator thread.
+ * Defines behavior for chord.Coordinator thread.
  *
  * @author Bruno de Nadai Sarnaglia <denandai2@illinois.edu>
  * @version 1.0
@@ -72,7 +74,7 @@ public class Coordinator extends Thread {
     private void broadcast(String message) {
         Integer avoid = null;
         String[] cmd = message.split(" ");
-        if(cmd.length == 2 && cmd[0].equals("joined"))
+        if (cmd.length == 2 && cmd[0].equals("joined"))
             avoid = Integer.valueOf(cmd[1]);
         for (int p = 0; p < Main.TOTAL_KEYS; p++) {
             if (listOfPorts[p] != null && (avoid == null || (avoid != null && p != avoid))) {
@@ -80,8 +82,6 @@ public class Coordinator extends Thread {
             }
         }
     }
-
-
 
     /**
      * Executes a command given by the user.
@@ -121,15 +121,14 @@ public class Coordinator extends Thread {
         // show p (or show all)
 
         if (listArgs[0].equals("show")) {
-            if (!listArgs[1].equals("all"))  {
+            if (!listArgs[1].equals("all")) {
                 int port = Integer.parseInt(listArgs[1]);
                 System.out.println("SHOW X");
-                if (listOfPorts[port] != null){
+                if (listOfPorts[port] != null) {
                     System.out.println("SHOW X OK");
                     sendMessage(input, listOfPorts[port]);
                 }
-            }
-            else {
+            } else {
                 broadcast("show");
             }
         }
