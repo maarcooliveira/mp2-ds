@@ -10,10 +10,10 @@ import java.net.Socket;
  * @author Bruno de Nadai Sarnaglia <denandai2@illinois.edu>
  * @version 1.0
  */
-public class Coordinator implements Runnable {
+public class Coordinator extends Thread {
 
-    private int port = 9000;
-    private int[] listOfPorts = new int[256];
+    public static final int BASE_PORT = 9000;
+    private Integer[] listOfPorts = new Integer[256];
 
     /**
      * Creates a new coordinator and runs its thread.
@@ -21,7 +21,13 @@ public class Coordinator implements Runnable {
      * @param args all arguments needed to run coordinator (none).
      */
     public static void main(String[] args) {
-        new Coordinator().run();
+        new Coordinator().start();
+    }
+
+    public void joinNode(int port) {
+        listOfPorts[port] = BASE_PORT + port;
+        sendMessage("join " + port, listOfPorts[port]);
+        broadcast("joined " + port);
     }
 
     /**
@@ -57,11 +63,25 @@ public class Coordinator implements Runnable {
             DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
             dataOutputStream.writeBytes(message);
             dataOutputStream.close();
-            socket.close();
+//            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    private void broadcast(String message) {
+        Integer avoid = null;
+        String[] cmd = message.split(" ");
+        if(cmd.length == 2 && cmd[0].equals("joined"))
+            avoid = Integer.valueOf(cmd[1]);
+        for (int p = 0; p < Main.TOTAL_KEYS; p++) {
+            if (listOfPorts[p] != null && (avoid == null || (avoid != null && p != avoid))) {
+                sendMessage(message, listOfPorts[p]);
+            }
+        }
+    }
+
+
 
     /**
      * Executes a command given by the user.
@@ -74,30 +94,43 @@ public class Coordinator implements Runnable {
         // join p
 
         if (listArgs[0].equals("join")) {
-            listOfPorts[Integer.parseInt(listArgs[1])] = port++;
+            int port = Integer.parseInt(listArgs[1]);
+            Node n = new Node(port);
+            joinNode(port);
         }
 
         // find p k
 
         if (listArgs[0].equals("find")) {
-            if (listOfPorts[Integer.parseInt(listArgs[1])] != 0) {
-                sendMessage(input, listOfPorts[Integer.parseInt(listArgs[1])]);
+            int port = Integer.parseInt(listArgs[1]);
+            if (listOfPorts[port] != null) {
+                sendMessage(input, listOfPorts[port]);
             }
         }
 
         // leave p
 
         if (listArgs[0].equals("leave")) {
-            if (listOfPorts[Integer.parseInt(listArgs[1])] != 0) {
-                sendMessage(input, listOfPorts[Integer.parseInt(listArgs[1])]);
+            int port = Integer.parseInt(listArgs[1]);
+            if (listOfPorts[port] != null) {
+                broadcast("joined " + port);
+                sendMessage(input, listOfPorts[port]);
             }
         }
 
         // show p (or show all)
 
         if (listArgs[0].equals("show")) {
-            if (!listArgs[1].equals("all") && listOfPorts[Integer.parseInt(listArgs[1])] != 0) {
-                sendMessage(input, listOfPorts[Integer.parseInt(listArgs[1])]);
+            if (!listArgs[1].equals("all"))  {
+                int port = Integer.parseInt(listArgs[1]);
+                System.out.println("SHOW X");
+                if (listOfPorts[port] != null){
+                    System.out.println("SHOW X OK");
+                    sendMessage(input, listOfPorts[port]);
+                }
+            }
+            else {
+                broadcast("show");
             }
         }
     }
@@ -131,7 +164,7 @@ public class Coordinator implements Runnable {
 
         // find p k
 
-        if (listArgs[0].equals("find")) {
+        else if (listArgs[0].equals("find")) {
             if (listArgs.length != 3) {
                 System.out.println("find <node> <node>");
                 return false;
@@ -145,7 +178,7 @@ public class Coordinator implements Runnable {
 
         // leave p
 
-        if (listArgs[0].equals("leave")) {
+        else if (listArgs[0].equals("leave")) {
             if (listArgs.length != 2) {
                 System.out.println("leave <node>");
                 return false;
@@ -159,7 +192,7 @@ public class Coordinator implements Runnable {
 
         // show p (or show all)
 
-        if (listArgs[0].equals("show")) {
+        else if (listArgs[0].equals("show")) {
             if (listArgs.length != 2) {
                 System.out.println("show <node> OR show all");
                 return false;
