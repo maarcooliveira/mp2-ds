@@ -7,7 +7,7 @@ import java.net.Socket;
 /**
  * Defines behavior for Coordinator thread.
  *
- * @author Bruno <denandai2@illinois.edu>
+ * @author Bruno de Nadai Sarnaglia <denandai2@illinois.edu>
  * @version 1.0
  */
 public class Coordinator implements Runnable {
