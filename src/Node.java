@@ -4,10 +4,14 @@
  */
 public class Node implements Runnable {
     int identifier;
+    int predecessor;
+    int successor;
     Integer[] fingerTable;
 
     public Node() {
         fingerTable = new Integer[8];
+        predecessor = identifier;
+        successor = identifier;
     }
 
     @Override
@@ -19,7 +23,8 @@ public class Node implements Runnable {
         }
     }
 
-    public void join() {
+    public void join(int predecessor) {
+        this.predecessor = predecessor;
 
     }
 
@@ -27,17 +32,34 @@ public class Node implements Runnable {
 
     }
 
+    /* Called when the coordinator node sends a "leave" message */
     public void leave() {
 
     }
 
     public void show() {
-//        int firstKey = fingerTable[7] ==
+        int firstKey = predecessor == identifier ? Main.TOTAL_KEYS - 1 : predecessor + 1;
+        int lastKey = identifier;
 
-        int lastKey = fingerTable[0] == null ? Main.TOTAL_KEYS : fingerTable[0];
-
-        for(int key = 0; key < lastKey; key++) {
+        for(int key = firstKey; key <= lastKey; key++) {
             System.out.println(key);
         }
+    }
+
+    /* Called by a new node that just entered. It should update its
+     * finger table to reflect the new node added. */
+    public void nodeEntered(int node) {
+
+    }
+
+    /* Called by a node that just left. It should update its finger
+     * table to reflect the node removal. */
+    public void nodeLeft(int removedNode, int removedNodePredecessor) {
+        predecessor = removedNodePredecessor;
+
+    }
+
+    private void recalculateFingerTable() {
+
     }
 }
