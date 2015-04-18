@@ -8,3 +8,4 @@ Key lookup system based on [Chord's paper on SIGCOMM 2001](http://pdos.csail.mit
 
 # Report
 
+The class report containing details about the system's performance and instructions on how to run the SVN code (similar to GitHub's) submitted for evaluation [can be accessed on Google Drive](https://docs.google.com/document/d/1VfW2d06xVfCJ3ZyHpEg151GC6FBtmHVHSsP2ERAqMdg/edit?usp=sharing).
