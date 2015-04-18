@@ -1,7 +1,5 @@
-import java.io.BufferedReader;
-import java.io.Console;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.Socket;
 import java.util.Scanner;
 
 /**
@@ -36,10 +34,37 @@ public class Coordinator implements Runnable{
         }
     }
 
+    private void sendMessage(String message, int port){
+        try {
+            Socket socket = new Socket("127.0.0.1", port);
+            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+            dataOutputStream.writeBytes(message);
+            dataOutputStream.close();
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void executeCommand(String input) {
         String[] listArgs = input.split(" ");
         if(listArgs[0].equals("join")){
             listOfPorts[Integer.parseInt(listArgs[1])] = port++;
+        }
+        if(listArgs[0].equals("find")){
+            if(listOfPorts[Integer.parseInt(listArgs[1])] != 0){
+                sendMessage(input, listOfPorts[Integer.parseInt(listArgs[1])]);
+            }
+        }
+        if(listArgs[0].equals("leave")){
+            if(listOfPorts[Integer.parseInt(listArgs[1])] != 0){
+                sendMessage(input, listOfPorts[Integer.parseInt(listArgs[1])]);
+            }
+        }
+        if(listArgs[0].equals("show")){
+            if(!listArgs[1].equals("all") && listOfPorts[Integer.parseInt(listArgs[1])] != 0){
+                sendMessage(input, listOfPorts[Integer.parseInt(listArgs[1])]);
+            }
         }
     }
 
