@@ -9,10 +9,14 @@ import java.util.Scanner;
  */
 public class Coordinator implements Runnable{
 
+    private int port = 9000;
+    private int[] listOfPorts = new int[256];
+
     public static void main(String[] args){
         new Coordinator().run();
     }
-    
+
+
 
     @Override
     public void run() {
@@ -23,14 +27,23 @@ public class Coordinator implements Runnable{
                 if(input != null && input.equals("exit")){
                     break;
                 }
-                validInput(input);
+                if(validInput(input)){
+                    executeCommand(input);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    public boolean validInput(String input){
+    private void executeCommand(String input) {
+        String[] listArgs = input.split(" ");
+        if(listArgs[0].equals("join")){
+            listOfPorts[Integer.parseInt(listArgs[1])] = port++;
+        }
+    }
+
+    private boolean validInput(String input){
         if(input == null) {
             System.out.println("command not valid");
             return false;
@@ -98,4 +111,6 @@ public class Coordinator implements Runnable{
         }
         return true;
     }
+
+
 }
