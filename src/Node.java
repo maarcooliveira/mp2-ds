@@ -11,7 +11,6 @@ public class Node implements Runnable {
     public Node() {
         fingerTable = new Integer[8];
         predecessor = identifier;
-        successor = identifier;
     }
 
     @Override
