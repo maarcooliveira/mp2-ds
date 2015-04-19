@@ -29,15 +29,4 @@ public class NodeTest {
         assert testNode.storedKeys(8, 12, 16).equals("0 1 2 3 4 5 6 7 8 13 14 15");
     }
 
-    public String storedKeys(int nodeID, int prevID, int totalKeys) {
-        int firstKey = (prevID + 1) % totalKeys;
-        int lastKey = prevID < nodeID ? nodeID : nodeID + totalKeys;
-        ArrayList<Integer> allNumbers = new ArrayList<Integer>();
-        for (int key = firstKey; key <= lastKey; key++) {
-            Integer modularKey = key % totalKeys;
-            allNumbers.add(modularKey);
-        }
-        Collections.sort(allNumbers);
-        return allNumbers.toString().replace("[", "").replace("]", "").replace(",", "");
-    }
 }

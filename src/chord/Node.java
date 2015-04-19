@@ -3,6 +3,8 @@ package chord;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  * Defines behavior for chord.Node thread. A node stores keys usually represented on a circle, and maps which node to
@@ -39,8 +41,10 @@ public class Node {
                 while (true) {
                     socket = listener.accept();
                     System.out.println("Connection accepted at node " + identifier);
+                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader receivedMessage = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    String[] listArgs = receivedMessage.readLine().split(" ");
+                    String msg = receivedMessage.readLine();
+                    String[] listArgs = msg.split(" ");
                     System.out.println("CMD " + listArgs[0] + " received at node " + identifier);
 
                     // join p
@@ -53,10 +57,11 @@ public class Node {
                     // find p k
                     else if (listArgs[0].equals("find")) {
                         int key = Integer.parseInt(listArgs[2]);
-                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+
                         System.out.println("find(" + key + ") called");
-                        writer.write(find(key));
-                        writer.flush();
+                        writer.println(find(key));
+//                        writer.write(find(key));
+//                        writer.flush();
                         System.out.println("find(key) returned");
                     }
 
@@ -93,18 +98,20 @@ public class Node {
                     //
                     else if (listArgs[0].equals("predecessor")) {
                         System.out.println("getPredecessor() of " + identifier + " called");
-                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                        writer.write(getPredecessor());
-                        writer.flush();
+//                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+//                        writer.write(getPredecessor());
+//                        writer.flush();
+                        writer.println(getPredecessor());
                         System.out.println("getPredecessor() of " + identifier + " returned");
                     }
 
                     //
                     else if (listArgs[0].equals("successor")) {
                         System.out.println("getSuccessor() of " + identifier + " called");
-                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-                        writer.write(getSuccessor());
-                        writer.flush();
+//                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+//                        writer.write(getSuccessor());
+//                        writer.flush();
+                        writer.println(getSuccessor());
                         System.out.println("getSuccessor() of " + identifier + " returned");
                     }
 //                    socket.close();
@@ -201,21 +208,15 @@ public class Node {
      * @return a string containing all keys separated by spaces.
      */
     public String storedKeys(int nodeID, int prevID, int totalKeys) {
-        //TODO wait piazza response
         int firstKey = (prevID + 1) % totalKeys;
         int lastKey = prevID < nodeID ? nodeID : nodeID + totalKeys;
-        boolean first = true;
-        String stored = null;
+        ArrayList<Integer> allNumbers = new ArrayList<Integer>();
         for (int key = firstKey; key <= lastKey; key++) {
             Integer modularKey = key % totalKeys;
-            if (first) {
-                stored = modularKey.toString();
-                first = false;
-            } else {
-                stored += " " + modularKey.toString();
-            }
+            allNumbers.add(modularKey);
         }
-        return stored;
+        Collections.sort(allNumbers);
+        return allNumbers.toString().replace("[", "").replace("]", "").replace(",", "");
     }
 
     /**
@@ -298,14 +299,21 @@ public class Node {
         try {
             System.out.println("sendAndWait called with message " + message + " to port " + port);
             Socket socket = new Socket("127.0.0.1", port);
-            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-            dataOutputStream.writeBytes(message);
-            System.out.println("sendAndWait wrote message");
+//            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+//            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+//            dataOutputStream.writeBytes(message);
+            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+//            dataOutputStream.close();
+//            dataOutputStream.flush();
+            writer.println(message);
+            System.out.println("sendAndWait wrote message");
+//            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("sendAndWait will read response");
             String response = reader.readLine();
+
             System.out.println("sendAndWait already read response");
-            dataOutputStream.close();
+
             socket.close();
             System.out.println("Will return response");
             return Integer.parseInt(response);
