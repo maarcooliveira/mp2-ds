@@ -36,6 +36,8 @@ public class Coordinator extends Thread {
         numNodes++;
         listOfPorts[port] = BASE_PORT + port;
         sendMessage("join " + port, listOfPorts[port]);
+        System.out.println("****ACK COUNT: " + ackCount);
+        while(ackCount < 1) {}
         broadcast("joined " + port);
     }
 
@@ -52,6 +54,7 @@ public class Coordinator extends Thread {
                     break;
                 }
                 if (validInput(input)) {
+                    System.out.println("*Added command to queue: " + input);
                     messageQueue.add(input);
                 }
             } catch (IOException e) {
@@ -72,7 +75,6 @@ public class Coordinator extends Thread {
             DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
             dataOutputStream.writeBytes(message);
             dataOutputStream.close();
-//            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -83,9 +85,12 @@ public class Coordinator extends Thread {
         String[] cmd = message.split(" ");
         if (cmd.length == 2 && cmd[0].equals("joined"))
             avoid = Integer.valueOf(cmd[1]);
+        int sendCount = 0;
         for (int p = 0; p < Main.TOTAL_KEYS; p++) {
             if (listOfPorts[p] != null && (avoid == null || (avoid != null && p != avoid))) {
+                while(ackCount < sendCount) {}
                 sendMessage(message, listOfPorts[p]);
+                sendCount = sendCount + 1;
             }
         }
     }
@@ -120,6 +125,7 @@ public class Coordinator extends Thread {
                 numNodes--;
                 broadcast("left " + port);
                 sendMessage(input, listOfPorts[port]);
+                listOfPorts[port] = null;
             }
         }
 
@@ -242,6 +248,16 @@ public class Coordinator extends Thread {
                         ackCount = 0;
                         acksToWait = numNodes;
                     }
+                    else if (c.equals("show") && listArgs[1].equals("all")) {
+                        ackReceived = false;
+                        ackCount = 0;
+                        acksToWait = numNodes;
+                    }
+                    else if (c.equals("find")) {
+                        ackReceived = true;
+                        ackCount = 0;
+                        acksToWait = 0;
+                    }
                     else {
                         ackReceived = true;
                         ackCount = 0;
@@ -275,15 +291,28 @@ public class Coordinator extends Thread {
                         broadcast("exit");
                         System.exit(0);
                     }
-                    if (listArgs[0].equals("ack")) {
-                        System.out.println("ACK RECEIVED");
-                        ackCount++;
-                        if(!ackReceived && ackCount >= acksToWait) {
-                            acksToWait = 0;
-                            ackCount = 0;
-                            ackReceived = true;
+                    else if (listArgs[0].equals("ack")) {
+
+                        // is response of a find
+                        if (listArgs.length == 5 && listArgs[1].equals("find")) {
+                            System.out.println(listArgs[4]);
+//                            ackCount = ackCount + 1;
+//                            if(!ackReceived && ackCount >= acksToWait) {
+//                                acksToWait = 0;
+//                                ackReceived = true;
+//                            }
                         }
+                        else {
+                            System.out.println("ACK RECEIVED");
+                            ackCount = ackCount + 1;
+                            if(!ackReceived && ackCount >= acksToWait) {
+                                acksToWait = 0;
+                                ackReceived = true;
+                            }
+                        }
+
                     }
+
                 } // End of while loop
             } catch (IOException e) {
                 e.printStackTrace();

@@ -53,10 +53,18 @@ public class Node {
                         System.out.println("join finished");
                         sendAck(msg);
                     } else if (listArgs[0].equals("find")) {
-                        int key = Integer.parseInt(listArgs[2]);
-
-                        System.out.println("find(" + key + ") called");
-                        writer.println(find(key));
+                        if (listArgs.length == 3) {
+                            int key = Integer.parseInt(listArgs[2]);
+                            System.out.println("find(" + key + ") called");
+                            int response = find(key);
+                            sendAck(msg + " " + response);
+                        }
+                        else {
+                            int key = Integer.parseInt(listArgs[1]);
+                            System.out.println("find(" + key + ") called");
+                            int response = find(key);
+                            writer.println(response);
+                        }
                         System.out.println("find(key) returned");
                     } else if (listArgs[0].equals("leave")) {
                         System.out.println("leave called");
@@ -67,6 +75,7 @@ public class Node {
                         System.out.println("show called");
                         show();
                         System.out.println("show returned");
+                        sendAck(msg);
                     } else if (listArgs[0].equals("joined")) {
                         int node = Integer.parseInt(listArgs[1]);
                         System.out.println("nodeEntered(" + node + ") called");
@@ -94,10 +103,8 @@ public class Node {
                         writer.println(getSuccessor());
                         System.out.println("getSuccessor() of " + identifier + " returned");
                     }
-//                    socket.close();
                 }
             } catch (IOException e) {
-                e.printStackTrace();
             } finally {
             }
 
@@ -148,9 +155,9 @@ public class Node {
 
         Integer max = null;
         for (int k = 0; k < Main.BITS; k++) {
-            if (k <= key) {
-                if ((max != null && max < k) || max == null) {
-                    max = k;
+            if (fingerTable[k] <= key) {
+                if ((max != null && max <= fingerTable[k]) || max == null) {
+                    max = fingerTable[k];
                 }
             }
         }
@@ -158,12 +165,18 @@ public class Node {
         if (max == null) {
             //call find on successor
             System.out.println("Next node: successor");
-            return findKeyOn(key, fingerTable[0]);
+            if (successor != identifier)
+                return findKeyOn(key, fingerTable[0]);
         } else {
             //call find on node max
             System.out.println("Next node: " + max);
-            return findKeyOn(key, max);
+            if (max == 0)
+                return findKeyOn(key, fingerTable[0]);
+            if (max != identifier)
+                return findKeyOn(key, max);
+
         }
+        return identifier;
     }
 
     /**
@@ -178,6 +191,7 @@ public class Node {
      */
     public void show() {
         System.out.println("Entered show() in " + identifier);
+        System.out.print(identifier + " ");
         System.out.println(storedKeys(identifier, predecessor, Main.TOTAL_KEYS));
     }
 
@@ -190,8 +204,8 @@ public class Node {
      * @return a string containing all keys separated by spaces.
      */
     public String storedKeys(int nodeID, int prevID, int totalKeys) {
-        int firstKey = (prevID + 1) % totalKeys;
-        int lastKey = prevID < nodeID ? nodeID : nodeID + totalKeys;
+        int firstKey = (prevID + 1);
+        int lastKey = prevID < nodeID ? nodeID : (nodeID + totalKeys) ;
         ArrayList<Integer> allNumbers = new ArrayList<Integer>();
         for (int key = firstKey; key <= lastKey; key++) {
             Integer modularKey = key % totalKeys;
@@ -246,10 +260,32 @@ public class Node {
     private void recalculateFingerTable(int node, boolean added) {
         System.out.println("Entered recalculateFingerTable() of node " + identifier + ", with node=" + node + " and added=" + added);
 
-        if (added == true) {
-            fingerTable = fingerTableAfterJoin(identifier, fingerTable, node, getSuccessorOf(node));
-        } else {
-            fingerTable = fingerTableAfterLeft(fingerTable, node, getSuccessorOf(node));
+        if (node == identifier) {
+            if (added == true) {
+                initializeFingerTable(node);
+            }
+        }
+        else {
+            if (added == true) {
+                fingerTable = fingerTableAfterJoin(identifier, fingerTable, node, getSuccessorOf(node));
+            } else {
+                fingerTable = fingerTableAfterLeft(fingerTable, node, getSuccessorOf(node));
+            }
+        }
+
+
+    }
+
+    private void initializeFingerTable(int node) {
+        for (int i = 0; i < Main.BITS; i++) {
+            if (node == 0) {
+                fingerTable[i] = 0;
+            }
+            else {
+                int powerOfTwo = ((Double) Math.pow(2, i)).intValue();
+                int iterator = (identifier + powerOfTwo) % Main.TOTAL_KEYS;
+                fingerTable[i] = findKeyOn(iterator, 0);
+            }
         }
     }
 
