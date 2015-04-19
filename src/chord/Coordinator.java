@@ -25,6 +25,8 @@ public class Coordinator extends Thread {
     private static volatile int acksToWait = 0;
     private static volatile int ackCount = 0;
     public static final int COORDINATOR_PORT = 9999;
+    public static volatile int MSG_COUNT = 0;
+    public static volatile int CALL_COUNT = 0;
 
     public Coordinator() {
         numNodes = 0;
@@ -36,9 +38,8 @@ public class Coordinator extends Thread {
         numNodes++;
         listOfPorts[port] = BASE_PORT + port;
         sendMessage("join " + port, listOfPorts[port]);
-        System.out.println("****ACK COUNT: " + ackCount);
+
         while(ackCount < 1) {}
-        System.out.println("*Received ACK from join " + port);
         broadcast("joined " + port);
     }
 
@@ -52,10 +53,10 @@ public class Coordinator extends Thread {
             try {
                 String input = bufferedReader.readLine();
                 if (input != null && input.equals("exit")) {
-                    break;
+                    System.exit(0);
                 }
                 if (validInput(input)) {
-                    System.out.println("*Added command to queue: " + input);
+                    CALL_COUNT++;
                     messageQueue.add(input);
                 }
             } catch (IOException e) {
@@ -71,7 +72,7 @@ public class Coordinator extends Thread {
      * @param port    the port for that thread.
      */
     private static void sendMessage(String message, int port) {
-        System.out.println("WILL SEND MESSAGE " + message);
+
         try {
             Socket socket = new Socket("127.0.0.1", port);
             DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
@@ -79,20 +80,17 @@ public class Coordinator extends Thread {
             dataOutputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println(">>ERROR TRYING TO CONNECT TO PORT " + port + " TO SEND MESSAGE " + message);
         }
-//        if(!ackReceived && ackCount >= acksToWait) {
-//            acksToWait = 0;
-//            ackReceived = true;
-//        }
     }
 
     private static void broadcast(String message) {
         Integer avoid = null;
         String[] cmd = message.split(" ");
+
         if (cmd.length == 2 && cmd[0].equals("joined"))
             avoid = Integer.valueOf(cmd[1]);
         int sendCount = ackCount;
+
         for (int p = 0; p < Main.TOTAL_KEYS; p++) {
             if (listOfPorts[p] != null && (avoid == null || (avoid != null && p != avoid))) {
                 while(ackCount < sendCount) {}
@@ -100,11 +98,6 @@ public class Coordinator extends Thread {
                 sendCount = sendCount + 1;
             }
         }
-//        while(ackCount < acksToWait) {}
-//        if(!ackReceived && ackCount >= acksToWait) {
-//            acksToWait = 0;
-//            ackReceived = true;
-//        }
     }
 
     /**
@@ -118,6 +111,7 @@ public class Coordinator extends Thread {
         // join p
         if (listArgs[0].equals("join")) {
             int port = Integer.parseInt(listArgs[1]);
+
             if (listOfPorts[port] == null) {
                 Node n = new Node(port);
                 joinNode(port);
@@ -127,6 +121,7 @@ public class Coordinator extends Thread {
         // find p k
         else if (listArgs[0].equals("find")) {
             int port = Integer.parseInt(listArgs[1]);
+
             if (listOfPorts[port] != null) {
                 sendMessage(input, listOfPorts[port]);
             }
@@ -135,6 +130,7 @@ public class Coordinator extends Thread {
         // leave p
         else if (listArgs[0].equals("leave")) {
             int port = Integer.parseInt(listArgs[1]);
+
             if (listOfPorts[port] != null) {
                 numNodes--;
                 broadcast("left " + port);
@@ -147,12 +143,16 @@ public class Coordinator extends Thread {
         else if (listArgs[0].equals("show")) {
             if (!listArgs[1].equals("all")) {
                 int port = Integer.parseInt(listArgs[1]);
-                if (listOfPorts[port] != null) {
+
+                if (listOfPorts[port] != null)
                     sendMessage(input, listOfPorts[port]);
-                }
             } else { //is show all
                 broadcast("show all");
             }
+        }
+
+        else if (listArgs[0].equals("stabilize")) {
+            broadcast("joined 0");
         }
     }
 
@@ -167,10 +167,25 @@ public class Coordinator extends Thread {
             System.out.println("command not valid");
             return false;
         }
+
         String[] listArgs = input.split(" ");
 
-        // join p
-        if (listArgs[0].equals("join")) {
+        if (listArgs[0].equals("avg")) {
+            System.out.println(MSG_COUNT/CALL_COUNT);
+            return false;
+        }
+
+        else if (listArgs[0].equals("clr")) {
+            MSG_COUNT = 0;
+            CALL_COUNT = 0;
+            return false;
+        }
+
+        else if (listArgs[0].equals("stabilize")) {
+            return true;
+        }
+
+        else if (listArgs[0].equals("join")) {
             if (listArgs.length != 2) {
                 System.out.println("join <node>");
                 return false;
@@ -182,7 +197,6 @@ public class Coordinator extends Thread {
             return true;
         }
 
-        // find p k
         else if (listArgs[0].equals("find")) {
             if (listArgs.length != 3) {
                 System.out.println("find <node> <node>");
@@ -195,7 +209,6 @@ public class Coordinator extends Thread {
             return true;
         }
 
-        // leave p
         else if (listArgs[0].equals("leave")) {
             if (listArgs.length != 2) {
                 System.out.println("leave <node>");
@@ -208,7 +221,6 @@ public class Coordinator extends Thread {
             return true;
         }
 
-        // show p (or show all)
         else if (listArgs[0].equals("show")) {
             if (listArgs.length != 2) {
                 System.out.println("show <node> OR show all");
@@ -223,6 +235,7 @@ public class Coordinator extends Thread {
             }
             return true;
         }
+
         System.out.println("command not valid");
         return false;
     }
@@ -252,11 +265,12 @@ public class Coordinator extends Thread {
             while (true) {
                 if (messageQueue.size() > 0 && ackReceived) {
                     String message = messageQueue.remove(0);
-                    System.out.println("MESSAGE " + message + " DEQUEUED");
                     String[] listArgs = message.split(" ");
                     String c = listArgs[0];
+
                     if (c.equals("join") || c.equals("leave") || c.equals("joined") || c.equals("left")) {
                         int port = Integer.parseInt(listArgs[1]);
+
                         if (c.equals("join") && listOfPorts[port] != null) {
                             ackCount = 0;
                             acksToWait = 0;
@@ -268,39 +282,47 @@ public class Coordinator extends Thread {
                             ackReceived = false;
                         }
                     }
-                    else if (c.equals("show")) {
 
+                    else if (c.equals("show")) {
                         if(listArgs[1].equals("all")) {
                             ackCount = 0;
                             acksToWait = numNodes;
                             ackReceived = false;
                         }
-                        else {
-                            if (listOfPorts[Integer.valueOf(listArgs[1])] != null) {
-                                ackCount = 0;
-                                acksToWait = 1;
-                                ackReceived = false;
-                            }
-
+                        else if (listOfPorts[Integer.valueOf(listArgs[1])] != null) {
+                            ackCount = 0;
+                            acksToWait = 1;
+                            ackReceived = false;
                         }
-
                     }
+
                     else if (c.equals("find")) {
                         ackCount = 0;
-                        acksToWait = 0;
-                        ackReceived = true;
+                        acksToWait = 1;
+                        ackReceived = false;
                     }
+
+                    else if (c.equals("stabilize")) {
+                        ackCount = 0;
+                        acksToWait = numNodes - 1;
+                        if (acksToWait == 0)
+                            ackReceived = true;
+                        else
+                            ackReceived = false;
+                    }
+
                     else {
                         ackCount = 0;
                         acksToWait = 0;
                         ackReceived = true;
                     }
-                    System.out.println(">>>ACKS TO WAIT IS = " + acksToWait);
+
                     executeCommand(message);
                 }
             }
         }
     }
+
 
     private static class Listener extends Thread {
 
@@ -320,36 +342,30 @@ public class Coordinator extends Thread {
 
                     if (listArgs[0].equals("ack")) {
 
-                        // is response of a find
                         if (listArgs.length == 5 && listArgs[1].equals("find")) {
                             System.out.println(listArgs[4]);
                             ackCount = ackCount + 1;
-                            if(!ackReceived && ackCount >= acksToWait) {
+
+                            if (!ackReceived && ackCount >= acksToWait) {
                                 acksToWait = 0;
                                 ackReceived = true;
                             }
                         }
                         else {
-                            System.out.println("ACK RECEIVED FOR COMMAND " + listArgs[1]);
+
                             ackCount = ackCount + 1;
                         }
-//                        while(ackCount < acksToWait) {}
+
                         if(!ackReceived && ackCount >= acksToWait) {
                             acksToWait = 0;
                             ackCount = 0;
                             ackReceived = true;
                         }
-
-                        System.out.println(">>>ACKCOUNT NOW IS = " + ackCount);
-
-
                     }
-
-                } // End of while loop
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
-
 }
