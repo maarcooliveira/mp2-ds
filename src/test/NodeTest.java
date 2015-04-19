@@ -49,28 +49,5 @@ public class NodeTest {
         assert Arrays.equals(testNode.fingerTableAfterLeft(oldFingerTable, 96, 160), newFingerTable);
     }
 
-    public Integer[] fingerTableAfterJoin(int identifier, Integer[] oldFingerTable, int nodeWhoJoined, int
-            itsSuccessor){
-        Integer[] newFingerTable = new Integer[Main.BITS];
-        for(int i=0; i<Main.BITS; i++){
-            int powerOfTwo = ((Double) Math.pow(2, i)).intValue();
-            int iterator = (identifier + powerOfTwo) % Main.TOTAL_KEYS;
-            if(oldFingerTable[i] == itsSuccessor && iterator <= nodeWhoJoined)
-                newFingerTable[i] = nodeWhoJoined;
-            else
-                newFingerTable[i] = oldFingerTable[i];
-        }
-        return newFingerTable;
-    }
 
-    public Integer[] fingerTableAfterLeft(Integer[] oldFingerTable, int nodeWhoLeft, int itsSuccessor){
-        Integer[] newFingerTable = new Integer[Main.BITS];
-        for(int i=0; i<Main.BITS; i++){
-            if(oldFingerTable[i] == nodeWhoLeft)
-                newFingerTable[i] = itsSuccessor;
-            else
-                newFingerTable[i] = oldFingerTable[i];
-        }
-        return newFingerTable;
-    }
 }

@@ -52,38 +52,28 @@ public class Node {
                         joinNode();
                         System.out.println("join finished");
                         sendAck(msg);
-                    }
-
-                    else if (listArgs[0].equals("find")) {
+                    } else if (listArgs[0].equals("find")) {
                         int key = Integer.parseInt(listArgs[2]);
 
                         System.out.println("find(" + key + ") called");
                         writer.println(find(key));
                         System.out.println("find(key) returned");
-                    }
-
-                    else if (listArgs[0].equals("leave")) {
+                    } else if (listArgs[0].equals("leave")) {
                         System.out.println("leave called");
                         leave();
                         System.out.println("leave returned");
                         sendAck(msg);
-                    }
-
-                    else if (listArgs[0].equals("show")) {
+                    } else if (listArgs[0].equals("show")) {
                         System.out.println("show called");
                         show();
                         System.out.println("show returned");
-                    }
-
-                    else if (listArgs[0].equals("joined")) {
+                    } else if (listArgs[0].equals("joined")) {
                         int node = Integer.parseInt(listArgs[1]);
                         System.out.println("nodeEntered(" + node + ") called");
                         nodeEntered(node);
                         System.out.println("nodeEntered returned");
                         sendAck(msg);
-                    }
-
-                    else if (listArgs[0].equals("left")) {
+                    } else if (listArgs[0].equals("left")) {
                         int node = Integer.parseInt(listArgs[1]);
                         System.out.println("nodeLeft(" + node + ") called");
                         nodeLeft(node);
@@ -119,13 +109,13 @@ public class Node {
      */
     public void joinNode() {
         if (identifier != 0) {
-            successor = 0; //findKeyOn(identifier, 0);
-            predecessor = 0; //getPredecessorOf(successor);
+            successor = findKeyOn(identifier, 0);
+            predecessor = getPredecessorOf(successor);
         } else {
             successor = 0;
             predecessor = 0;
         }
-        //recalculateFingerTable(identifier, true);
+        recalculateFingerTable(identifier, true);
         System.out.println("Node joined " + identifier);
     }
 
@@ -147,7 +137,9 @@ public class Node {
     public int find(int key) {
         System.out.println("Entered find(key)");
 
-        if (key <= identifier && key > predecessor) {
+        if (key == identifier) {
+            return identifier;
+        } else if (key > predecessor && (key < identifier || (identifier == 0 && key < Main.TOTAL_KEYS))) {
             System.out.println("Key stored in " + identifier);
             return identifier;
         } else {
@@ -253,15 +245,37 @@ public class Node {
      */
     private void recalculateFingerTable(int node, boolean added) {
         System.out.println("Entered recalculateFingerTable() of node " + identifier + ", with node=" + node + " and added=" + added);
-        for (int bit = 0; bit < Main.BITS; bit++) {
-            int key = (identifier + ((Double) Math.pow(2, bit)).intValue()) % Main.TOTAL_KEYS;
-//            if (node == 0) {
-            fingerTable[bit] = 0;
-//            }
-//            else {
-//                fingerTable[bit] = findKeyOn(key, 0);
-//            }
+
+        if (added == true) {
+            fingerTable = fingerTableAfterJoin(identifier, fingerTable, node, getSuccessorOf(node));
+        } else {
+            fingerTable = fingerTableAfterLeft(fingerTable, node, getSuccessorOf(node));
         }
+    }
+
+    public Integer[] fingerTableAfterJoin(int identifier, Integer[] oldFingerTable, int nodeWhoJoined, int
+            itsSuccessor) {
+        Integer[] newFingerTable = new Integer[Main.BITS];
+        for (int i = 0; i < Main.BITS; i++) {
+            int powerOfTwo = ((Double) Math.pow(2, i)).intValue();
+            int iterator = (identifier + powerOfTwo) % Main.TOTAL_KEYS;
+            if (oldFingerTable[i] == itsSuccessor && iterator <= nodeWhoJoined)
+                newFingerTable[i] = nodeWhoJoined;
+            else
+                newFingerTable[i] = oldFingerTable[i];
+        }
+        return newFingerTable;
+    }
+
+    public Integer[] fingerTableAfterLeft(Integer[] oldFingerTable, int nodeWhoLeft, int itsSuccessor) {
+        Integer[] newFingerTable = new Integer[Main.BITS];
+        for (int i = 0; i < Main.BITS; i++) {
+            if (oldFingerTable[i] == nodeWhoLeft)
+                newFingerTable[i] = itsSuccessor;
+            else
+                newFingerTable[i] = oldFingerTable[i];
+        }
+        return newFingerTable;
     }
 
     private int findKeyOn(int key, int node) {
