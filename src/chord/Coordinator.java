@@ -1,6 +1,9 @@
 package chord;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.Socket;
 
 /**
@@ -13,7 +16,6 @@ public class Coordinator extends Thread {
 
     public static final int BASE_PORT = 9000;
     private Integer[] listOfPorts = new Integer[256];
-    private static volatile boolean canProceed = true;
 
     /**
      * Creates a new coordinator and runs its thread.
@@ -43,9 +45,6 @@ public class Coordinator extends Thread {
                     break;
                 }
                 if (validInput(input)) {
-                    System.out.println("***WILL WAIT FOR CANPROCEED");
-                    while(!canProceed) {}
-                    System.out.println("***CANPROCEED");
                     executeCommand(input);
                 }
             } catch (IOException e) {
@@ -63,24 +62,9 @@ public class Coordinator extends Thread {
     private void sendMessage(String message, int port) {
         try {
             Socket socket = new Socket("127.0.0.1", port);
-//            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-//            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-//            dataOutputStream.writeBytes(message);
-            writer.println(message);
-//            if(!message.startsWith("join")) {
-//                canProceed = true;
-//            }
-//            else {
-//                String response = reader.readLine();
-//                canProceed = true;
-//            }
-
-//            if(response.equals("ack " + message)) {
-//                canProceed = true;
-//            }
-
-
+            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+            dataOutputStream.writeBytes(message);
+            dataOutputStream.close();
 //            socket.close();
         } catch (IOException e) {
             e.printStackTrace();
