@@ -47,60 +47,53 @@ public class Node {
                     String[] listArgs = msg.split(" ");
                     System.out.println("CMD " + listArgs[0] + " received at node " + identifier);
 
-                    // join p
                     if (listArgs[0].equals("join")) {
                         System.out.println("join called");
                         joinNode();
                         System.out.println("join finished");
+                        sendAck(msg);
                     }
 
-                    // find p k
                     else if (listArgs[0].equals("find")) {
                         int key = Integer.parseInt(listArgs[2]);
 
                         System.out.println("find(" + key + ") called");
                         writer.println(find(key));
-//                        writer.write(find(key));
-//                        writer.flush();
                         System.out.println("find(key) returned");
                     }
 
-                    // leave p
                     else if (listArgs[0].equals("leave")) {
                         System.out.println("leave called");
                         leave();
                         System.out.println("leave returned");
+                        sendAck(msg);
                     }
 
-                    // show p (or show all)
                     else if (listArgs[0].equals("show")) {
                         System.out.println("show called");
                         show();
                         System.out.println("show returned");
                     }
 
-                    //
                     else if (listArgs[0].equals("joined")) {
                         int node = Integer.parseInt(listArgs[1]);
                         System.out.println("nodeEntered(" + node + ") called");
                         nodeEntered(node);
                         System.out.println("nodeEntered returned");
+                        sendAck(msg);
                     }
 
-                    //
                     else if (listArgs[0].equals("left")) {
                         int node = Integer.parseInt(listArgs[1]);
                         System.out.println("nodeLeft(" + node + ") called");
                         nodeLeft(node);
                         System.out.println("nodeLeft returned");
+                        sendAck(msg);
                     }
 
                     //
                     else if (listArgs[0].equals("predecessor")) {
                         System.out.println("getPredecessor() of " + identifier + " called");
-//                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-//                        writer.write(getPredecessor());
-//                        writer.flush();
                         writer.println(getPredecessor());
                         System.out.println("getPredecessor() of " + identifier + " returned");
                     }
@@ -108,9 +101,6 @@ public class Node {
                     //
                     else if (listArgs[0].equals("successor")) {
                         System.out.println("getSuccessor() of " + identifier + " called");
-//                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-//                        writer.write(getSuccessor());
-//                        writer.flush();
                         writer.println(getSuccessor());
                         System.out.println("getSuccessor() of " + identifier + " returned");
                     }
@@ -299,19 +289,12 @@ public class Node {
         try {
             System.out.println("sendAndWait called with message " + message + " to port " + port);
             Socket socket = new Socket("127.0.0.1", port);
-//            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-//            dataOutputStream.writeBytes(message);
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-//            dataOutputStream.close();
-//            dataOutputStream.flush();
             writer.println(message);
             System.out.println("sendAndWait wrote message");
-//            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("sendAndWait will read response");
             String response = reader.readLine();
-
             System.out.println("sendAndWait already read response");
 
             socket.close();
@@ -322,6 +305,19 @@ public class Node {
         }
         System.out.println("Will return null");
         return null;
+    }
+
+    private void sendAck(String message) {
+        try {
+            System.out.println("sendAck called with message " + message);
+            Socket socket = new Socket("127.0.0.1", Coordinator.COORDINATOR_PORT);
+            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            writer.println("ack " + message);
+            System.out.println("ack sent");
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
