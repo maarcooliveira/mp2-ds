@@ -4,6 +4,8 @@ import chord.Node;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
+
 /**
  * Tests modular versions of Node's methods.
  *
@@ -29,4 +31,46 @@ public class NodeTest {
         assert testNode.storedKeys(8, 12, 16).equals("0 1 2 3 4 5 6 7 8 13 14 15");
     }
 
+    @Test
+    public void testAfterJoin() {
+        // Using nodes 0, 80, 160, 220 for 8 bits (256 beys) on node 80
+        // We will test what happens when 96, whose successor is 160, joins the circle
+        Integer[] oldFingerTable = {160, 160, 160, 160, 160, 160, 160, 220};    // Correct according to the theory
+        Integer[] newFingerTable = {96, 96, 96, 96, 96, 160, 160, 220};         // Tested  according to the theory
+        assert Arrays.equals(testNode.fingerTableAfterJoin(80, oldFingerTable, 96, 160), newFingerTable);
+    }
+
+    @Test
+    public void testAfterLeft() {
+        // Using nodes 0, 80, 96, 160, 220 for 8 bits (256 beys) on node 80
+        // We will test what happens when 96, whose successor is 160, leaves
+        Integer[] oldFingerTable = {96, 96, 96, 96, 96, 160, 160, 220};        // Correct according to the theory
+        Integer[] newFingerTable = {160, 160, 160, 160, 160, 160, 160, 220};   // Tested  according to the theory
+        assert Arrays.equals(testNode.fingerTableAfterLeft(oldFingerTable, 96, 160), newFingerTable);
+    }
+
+    public Integer[] fingerTableAfterJoin(int identifier, Integer[] oldFingerTable, int nodeWhoJoined, int
+            itsSuccessor){
+        Integer[] newFingerTable = new Integer[Main.BITS];
+        for(int i=0; i<Main.BITS; i++){
+            int powerOfTwo = ((Double) Math.pow(2, i)).intValue();
+            int iterator = (identifier + powerOfTwo) % Main.TOTAL_KEYS;
+            if(oldFingerTable[i] == itsSuccessor && iterator <= nodeWhoJoined)
+                newFingerTable[i] = nodeWhoJoined;
+            else
+                newFingerTable[i] = oldFingerTable[i];
+        }
+        return newFingerTable;
+    }
+
+    public Integer[] fingerTableAfterLeft(Integer[] oldFingerTable, int nodeWhoLeft, int itsSuccessor){
+        Integer[] newFingerTable = new Integer[Main.BITS];
+        for(int i=0; i<Main.BITS; i++){
+            if(oldFingerTable[i] == nodeWhoLeft)
+                newFingerTable[i] = itsSuccessor;
+            else
+                newFingerTable[i] = oldFingerTable[i];
+        }
+        return newFingerTable;
+    }
 }
