@@ -16,6 +16,7 @@ import java.util.Collections;
 public class Node {
     int identifier, predecessor, successor;
     Integer[] fingerTable;
+    ServerSocket listener;
 
     /**
      * Creates a chord.Node thread and sets its initial finger table.
@@ -23,7 +24,13 @@ public class Node {
     public Node(int identifier) {
         this.identifier = identifier;
         fingerTable = new Integer[Main.BITS];
-        new Listener().start();
+        try {
+            listener = new ServerSocket(Coordinator.BASE_PORT + identifier);
+            new Listener().start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     /**
@@ -36,12 +43,12 @@ public class Node {
             //call function depending on the command received
             Socket socket = null;
             try {
-                ServerSocket listener = new ServerSocket(Coordinator.BASE_PORT + identifier);
+//                listener = new ServerSocket(Coordinator.BASE_PORT + identifier);
                 System.out.println("Server Socket listening at node " + identifier);
                 while (true) {
                     socket = listener.accept();
                     System.out.println("Connection accepted at node " + identifier);
-                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+//                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader receivedMessage = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     String msg = receivedMessage.readLine();
                     String[] listArgs = msg.split(" ");
@@ -63,6 +70,7 @@ public class Node {
                             int key = Integer.parseInt(listArgs[1]);
                             System.out.println("find(" + key + ") called");
                             int response = find(key);
+                            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                             writer.println(response);
                         }
                         System.out.println("find(key) returned");
@@ -93,6 +101,7 @@ public class Node {
                     //
                     else if (listArgs[0].equals("predecessor")) {
                         System.out.println("getPredecessor() of " + identifier + " called");
+                        PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                         writer.println(getPredecessor());
                         System.out.println("getPredecessor() of " + identifier + " returned");
                     }
@@ -100,6 +109,7 @@ public class Node {
                     //
                     else if (listArgs[0].equals("successor")) {
                         System.out.println("getSuccessor() of " + identifier + " called");
+                        PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                         writer.println(getSuccessor());
                         System.out.println("getSuccessor() of " + identifier + " returned");
                     }
@@ -155,7 +165,7 @@ public class Node {
 
         Integer max = null;
         for (int k = 0; k < Main.BITS; k++) {
-            if (fingerTable[k] <= key) {
+            if (fingerTable[k] <= key && fingerTable[k] >= identifier) {
                 if ((max != null && max <= fingerTable[k]) || max == null) {
                     max = fingerTable[k];
                 }
@@ -295,6 +305,7 @@ public class Node {
         for (int i = 0; i < Main.BITS; i++) {
             int powerOfTwo = ((Double) Math.pow(2, i)).intValue();
             int iterator = (identifier + powerOfTwo) % Main.TOTAL_KEYS;
+            System.out.println("**fingerTableAfterJoin called in node " + identifier + " for node joined: " + nodeWhoJoined + " and joined.successor: " + itsSuccessor);
             if (oldFingerTable[i] == itsSuccessor && iterator <= nodeWhoJoined)
                 newFingerTable[i] = nodeWhoJoined;
             else
