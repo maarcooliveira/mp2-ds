@@ -29,6 +29,7 @@ public class NodeTest {
         assert testNode.storedKeys(0, 20, 32).equals("0 21 22 23 24 25 26 27 28 29 30 31");
         assert testNode.storedKeys(5, 5, 8).equals("0 1 2 3 4 5 6 7");
         assert testNode.storedKeys(8, 12, 16).equals("0 1 2 3 4 5 6 7 8 13 14 15");
+        assert testNode.storedKeys(0, 255, 256).equals("0");
     }
 
     @Test
@@ -48,6 +49,5 @@ public class NodeTest {
         Integer[] newFingerTable = {160, 160, 160, 160, 160, 160, 160, 220};   // Tested  according to the theory
         assert Arrays.equals(testNode.fingerTableAfterLeft(oldFingerTable, 96, 160), newFingerTable);
     }
-
 
 }
