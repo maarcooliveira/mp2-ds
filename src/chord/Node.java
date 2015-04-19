@@ -5,6 +5,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.concurrent.Callable;
 
 /**
  * Defines behavior for chord.Node thread. A node stores keys usually represented on a circle, and maps which node to
@@ -40,81 +41,7 @@ public class Node {
                 System.out.println("Server Socket listening at node " + identifier);
                 while (true) {
                     socket = listener.accept();
-                    System.out.println("Connection accepted at node " + identifier);
-                    PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-                    BufferedReader receivedMessage = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    String msg = receivedMessage.readLine();
-                    String[] listArgs = msg.split(" ");
-                    System.out.println("CMD " + listArgs[0] + " received at node " + identifier);
-
-                    // join p
-                    if (listArgs[0].equals("join")) {
-                        System.out.println("join called");
-                        joinNode();
-                        System.out.println("join finished");
-                    }
-
-                    // find p k
-                    else if (listArgs[0].equals("find")) {
-                        int key = Integer.parseInt(listArgs[2]);
-
-                        System.out.println("find(" + key + ") called");
-                        writer.println(find(key));
-//                        writer.write(find(key));
-//                        writer.flush();
-                        System.out.println("find(key) returned");
-                    }
-
-                    // leave p
-                    else if (listArgs[0].equals("leave")) {
-                        System.out.println("leave called");
-                        leave();
-                        System.out.println("leave returned");
-                    }
-
-                    // show p (or show all)
-                    else if (listArgs[0].equals("show")) {
-                        System.out.println("show called");
-                        show();
-                        System.out.println("show returned");
-                    }
-
-                    //
-                    else if (listArgs[0].equals("joined")) {
-                        int node = Integer.parseInt(listArgs[1]);
-                        System.out.println("nodeEntered(" + node + ") called");
-                        nodeEntered(node);
-                        System.out.println("nodeEntered returned");
-                    }
-
-                    //
-                    else if (listArgs[0].equals("left")) {
-                        int node = Integer.parseInt(listArgs[1]);
-                        System.out.println("nodeLeft(" + node + ") called");
-                        nodeLeft(node);
-                        System.out.println("nodeLeft returned");
-                    }
-
-                    //
-                    else if (listArgs[0].equals("predecessor")) {
-                        System.out.println("getPredecessor() of " + identifier + " called");
-//                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-//                        writer.write(getPredecessor());
-//                        writer.flush();
-                        writer.println(getPredecessor());
-                        System.out.println("getPredecessor() of " + identifier + " returned");
-                    }
-
-                    //
-                    else if (listArgs[0].equals("successor")) {
-                        System.out.println("getSuccessor() of " + identifier + " called");
-//                        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-//                        writer.write(getSuccessor());
-//                        writer.flush();
-                        writer.println(getSuccessor());
-                        System.out.println("getSuccessor() of " + identifier + " returned");
-                    }
-//                    socket.close();
+                    new AnalyzeCommand(socket).start();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -124,19 +51,23 @@ public class Node {
         }
     }
 
+
+
     /**
      * Makes the chord.Node thread join the circle of 256 keys.
+     * First node is 0
      */
     public void joinNode() {
         if (identifier != 0) {
-            successor = 0; //findKeyOn(identifier, 0);
-            predecessor = 0; //getPredecessorOf(successor);
+            successor = findKeyOn(identifier, 0);
+            predecessor = getPredecessorOf(successor);
         } else {
             successor = 0;
             predecessor = 0;
         }
-        //recalculateFingerTable(identifier, true);
-        System.out.println("Node joined " + identifier);
+        System.out.println("*Predecessor and successor of " + identifier + " will be " + predecessor + " and " + successor);
+        recalculateFingerTable(identifier, true);
+        System.out.println("Node joined and fingerTable recalculated" + identifier);
     }
 
     public int getPredecessor() {
@@ -155,9 +86,13 @@ public class Node {
      * @param key an integer relative to a certain key of the circle (between 0 and 255).
      */
     public int find(int key) {
-        System.out.println("Entered find(key)");
+        System.out.println("Entered find(" + key + ") on node " + identifier);
 
-        if (key <= identifier && key > predecessor) {
+        if (key == identifier) {
+            System.out.println("Key stored in " + identifier);
+            return identifier;
+        }
+        else if (key < identifier && key > predecessor) {
             System.out.println("Key stored in " + identifier);
             return identifier;
         } else {
@@ -265,63 +200,159 @@ public class Node {
         System.out.println("Entered recalculateFingerTable() of node " + identifier + ", with node=" + node + " and added=" + added);
         for (int bit = 0; bit < Main.BITS; bit++) {
             int key = (identifier + ((Double) Math.pow(2, bit)).intValue()) % Main.TOTAL_KEYS;
-//            if (node == 0) {
+            if (node == 0) {
             fingerTable[bit] = 0;
-//            }
-//            else {
-//                fingerTable[bit] = findKeyOn(key, 0);
-//            }
+            }
+            else {
+                fingerTable[bit] = findKeyOn(key, node);
+            }
         }
     }
 
     private int findKeyOn(int key, int node) {
         System.out.println("FindKeyOn called for key " + key + " and node " + node);
-        return sendAndWait("find " + key, Coordinator.BASE_PORT + node);
+        return new SendAndWait("find " + key, Coordinator.BASE_PORT + node).call();
     }
 
     private int getPredecessorOf(int node) {
         System.out.println("getPredecessorOf called for node " + node);
-        return sendAndWait("predecessor " + node, Coordinator.BASE_PORT + node);
+        return new SendAndWait("predecessor " + node, Coordinator.BASE_PORT + node).call();
     }
 
     private int getSuccessorOf(int node) {
         System.out.println("getSuccessorOf called for node " + node);
-        return sendAndWait("successor " + node, Coordinator.BASE_PORT + node);
+        return new SendAndWait("successor " + node, Coordinator.BASE_PORT + node).call();
     }
 
-    /**
-     * Sends a message to a given port (thread) in the system.
-     *
-     * @param message a string containing commands for the thread.
-     * @param port    the port for that thread.
-     */
-    private Integer sendAndWait(String message, int port) {
-        try {
-            System.out.println("sendAndWait called with message " + message + " to port " + port);
-            Socket socket = new Socket("127.0.0.1", port);
-//            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//            DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
-//            dataOutputStream.writeBytes(message);
-            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-//            dataOutputStream.close();
-//            dataOutputStream.flush();
-            writer.println(message);
-            System.out.println("sendAndWait wrote message");
-//            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            System.out.println("sendAndWait will read response");
-            String response = reader.readLine();
 
-            System.out.println("sendAndWait already read response");
+    private class AnalyzeCommand extends Thread {
+        Socket socket;
 
-            socket.close();
-            System.out.println("Will return response");
-            return Integer.parseInt(response);
-        } catch (IOException e) {
-            e.printStackTrace();
+        public AnalyzeCommand(Socket s) {
+            socket = s;
         }
-        System.out.println("Will return null");
-        return null;
+
+        public void run() {
+            System.out.println("Connection accepted at node " + identifier);
+            PrintWriter writer = null;
+            try {
+
+                writer = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader receivedMessage = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                String msg = receivedMessage.readLine();
+                String[] listArgs = msg.split(" ");
+                System.out.println("CMD " + listArgs[0] + " received at node " + identifier);
+
+                // join p
+                if (listArgs[0].equals("join")) {
+                    System.out.println("join called");
+                    joinNode();
+                    writer.println("ack join 2");
+                    System.out.println("join finished");
+                }
+
+                // find p k
+                else if (listArgs[0].equals("find")) {
+                    int key = Integer.parseInt(listArgs[1]);
+
+                    System.out.println("find(" + key + ") called");
+                    writer.println(find(key));
+//                        writer.write(find(key));
+//                        writer.flush();
+                    System.out.println("find(key) returned");
+                }
+
+                // leave p
+                else if (listArgs[0].equals("leave")) {
+                    System.out.println("leave called");
+                    leave();
+                    System.out.println("leave returned");
+                }
+
+                // show p (or show all)
+                else if (listArgs[0].equals("show")) {
+                    System.out.println("show called");
+                    show();
+                    System.out.println("show returned");
+                }
+
+                //
+                else if (listArgs[0].equals("joined")) {
+                    int node = Integer.parseInt(listArgs[1]);
+                    System.out.println("nodeEntered(" + node + ") called");
+                    nodeEntered(node);
+                    System.out.println("nodeEntered returned");
+                }
+
+                //
+                else if (listArgs[0].equals("left")) {
+                    int node = Integer.parseInt(listArgs[1]);
+                    System.out.println("nodeLeft(" + node + ") called");
+                    nodeLeft(node);
+                    System.out.println("nodeLeft returned");
+                }
+
+                //
+                else if (listArgs[0].equals("predecessor")) {
+                    System.out.println("getPredecessor() of " + identifier + " called");
+                    writer.println(getPredecessor());
+                    System.out.println("getPredecessor() of " + identifier + " returned");
+                }
+
+                //
+                else if (listArgs[0].equals("successor")) {
+                    System.out.println("getSuccessor() of " + identifier + " called");
+                    writer.println(getSuccessor());
+                    System.out.println("getSuccessor() of " + identifier + " returned");
+                }
+//                    socket.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+    }
+
+
+    private class SendAndWait implements Callable<Integer> {
+        private String message;
+        private int port;
+
+        /**
+         * Sends a message to a given port (thread) in the system.
+         *
+         * @param m a string containing commands for the thread.
+         * @param p the port for that thread.
+         */
+        public SendAndWait(String m, Integer p) {
+            message = m;
+            port = p;
+        }
+
+        @Override
+        public Integer call() {
+            try {
+                System.out.println("sendAndWait called with message " + message + " to port " + port + " by " + identifier + " on THREAD " + Thread.currentThread().getId());
+                Socket socket = new Socket("127.0.0.1", port);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+                writer.println(message);
+                System.out.println("sendAndWait wrote message " + message);
+                System.out.println("sendAndWait will read response of message " + message);
+                String response = reader.readLine();
+                System.out.println("sendAndWait already read response");
+
+//                socket.close();
+                System.out.println("Will return response");
+                return Integer.parseInt(response);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            System.out.println("Will return null");
+            return null;
+        }
     }
 
 }
