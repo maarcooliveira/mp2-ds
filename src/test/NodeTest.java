@@ -16,11 +16,17 @@ public class NodeTest {
 
     private Node testNode;
 
+    /**
+     * Creates a sample node.
+     */
     @Before
     public void construct() {
         testNode = new Node(12);
     }
 
+    /**
+     * Tests the storedKeys() method for different inputs.
+     */
     @Test
     public void testStoredKeys() {
         assert testNode.storedKeys(12, 0, 32).equals("1 2 3 4 5 6 7 8 9 10 11 12");
@@ -32,6 +38,9 @@ public class NodeTest {
         assert testNode.storedKeys(0, 255, 256).equals("0");
     }
 
+    /**
+     * Tests how a finger table (that is already set) has to update after a join command.
+     */
     @Test
     public void testAfterJoin() {
         // Using nodes 0, 80, 160, 220 for 8 bits (256 beys) on node 80
@@ -41,6 +50,10 @@ public class NodeTest {
         assert Arrays.equals(testNode.fingerTableAfterJoin(80, oldFingerTable, 96, 160), newFingerTable);
     }
 
+
+    /**
+     * Tests how a finger table (that is already set) has to update after a leave command.
+     */
     @Test
     public void testAfterLeft() {
         // Using nodes 0, 80, 96, 160, 220 for 8 bits (256 beys) on node 80
