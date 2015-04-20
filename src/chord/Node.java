@@ -126,10 +126,20 @@ public class Node {
 
     }
 
+    /**
+     * Will find the predecessor of the instance of the node calling the function
+     *
+     * @return the predecessor of the node
+     */
     public int getPredecessor() {
         return predecessor;
     }
 
+    /**
+     * Will find the successor of the instance of the node calling the function
+     *
+     * @return the successor of the node
+     */
     public int getSuccessor() {
         return successor;
     }
@@ -174,13 +184,12 @@ public class Node {
 
     /**
      * Called when the coordinator node sends a "leave" message.
+     * No action required when the node receives a leave command.
      */
-    public void leave() {
-
-    }
+    public void leave() {}
 
     /**
-     * Show all keys stored in the node.
+     * Helper function to show all the keys stored in the node.
      */
     public void show() {
         System.out.print(identifier + " ");
@@ -208,7 +217,10 @@ public class Node {
     }
 
     /**
-     * Called by a new node that just entered. It should update its finger table to reflect the new node added.
+     * Called when a node just entered. The node executing this command should update its finger table
+     * to reflect the new node added.
+     *
+     * @param addedNode the most recent node
      */
     public void nodeEntered(int addedNode) {
 
@@ -224,7 +236,10 @@ public class Node {
     }
 
     /**
-     * Called by a node that just left. It should update its finger table to reflect the node removal.
+     * Called when a node just left. The node executing this command should update its finger table
+     * to reflect the node removal.
+     *
+     * @param removedNode the removed node
      */
     public void nodeLeft(int removedNode) {
 
@@ -240,7 +255,11 @@ public class Node {
     }
 
     /**
-     * Recalculates the finger table whenever a new node is either added or removed from the circle.
+     * Defines if the node calling it should have its finger table updated or initialized. This is called
+     * whenever a new node is added or removed from the circle.
+     *
+     * @param node the node that either entered or left the circle
+     * @param added indicates whether the node was added or removed
      */
     private void recalculateFingerTable(int node, boolean added) {
 
@@ -256,6 +275,11 @@ public class Node {
         }
     }
 
+    /**
+     * Initialize the finger table when the node is new and was just added to the circle
+     *
+     * @param node the node to be initialized
+     */
     private void initializeFingerTable(int node) {
         for (int i = 0; i < Main.BITS; i++) {
             if (node == 0) {
@@ -269,6 +293,15 @@ public class Node {
         }
     }
 
+    /**
+     * Rearrange the finger table when a different node joins the circle
+     *
+     * @param identifier the identifier of the node calling the function
+     * @param oldFingerTable the previous version of the finger table of the node
+     * @param nodeWhoJoined the node that just joined the circle
+     * @param itsSuccessor the successor of the new node
+     * @return the updated finger table
+     */
     public Integer[] fingerTableAfterJoin(int identifier, Integer[] oldFingerTable, int nodeWhoJoined, int
             itsSuccessor) {
 
@@ -287,6 +320,14 @@ public class Node {
         return newFingerTable;
     }
 
+    /**
+     * Rearrange the finger table when a different node leaves the circle
+     *
+     * @param oldFingerTable the previous version of the finger table of the node
+     * @param nodeWhoLeft the identifier of the node which left the circle
+     * @param itsSuccessor the successor of the removed node
+     * @return the updated finger table
+     */
     public Integer[] fingerTableAfterLeft(Integer[] oldFingerTable, int nodeWhoLeft, int itsSuccessor) {
 
         Integer[] newFingerTable = new Integer[Main.BITS];
@@ -301,23 +342,43 @@ public class Node {
         return newFingerTable;
     }
 
+    /**
+     * Sends a message to the node to find the key give
+     *
+     * @param key the key to be found
+     * @param node the node that will receive the request
+     * @return the node where the given key can be found
+     */
     private int findKeyOn(int key, int node) {
         return sendAndWait("find " + key, Coordinator.BASE_PORT + node);
     }
 
+    /**
+     * Sends a message to a node to get its predecessor
+     *
+     * @param node the node to be contacted
+     * @return the predecessor of the node
+     */
     private int getPredecessorOf(int node) {
         return sendAndWait("predecessor " + node, Coordinator.BASE_PORT + node);
     }
 
+    /**
+     * Sends a message to a node to get its successor
+     *
+     * @param node the node to be contacted
+     * @return the successor of the node
+     */
     private int getSuccessorOf(int node) {
         return sendAndWait("successor " + node, Coordinator.BASE_PORT + node);
     }
 
     /**
-     * Sends a message to a given port (thread) in the system.
+     * Sends a message to a given node and waits for an answer
      *
-     * @param message a string containing commands for the thread.
-     * @param port    the port for that thread.
+     * @param message a string containing a command for the node
+     * @param port the port where the node can be reached
+     * @return the response sent by the node
      */
     private Integer sendAndWait(String message, int port) {
 
@@ -338,6 +399,11 @@ public class Node {
         return null;
     }
 
+    /**
+     * Sends an ACK to the Coordinator when a command execution has finished
+     *
+     * @param message the message informing which command has finished
+     */
     private void sendAck(String message) {
 
         try {
