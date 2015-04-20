@@ -25,8 +25,8 @@ public class Coordinator extends Thread {
     private static volatile int acksToWait = 0;
     private static volatile int ackCount = 0;
     public static final int COORDINATOR_PORT = 9999;
-    public static volatile int MSG_COUNT = 0;
-    public static volatile int CALL_COUNT = 0;
+    public static volatile double MSG_COUNT = 0;
+    public static volatile double CALL_COUNT = 0;
 
     public Coordinator() {
         numNodes = 0;

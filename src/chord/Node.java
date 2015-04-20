@@ -1,6 +1,7 @@
 package chord;
 
 import java.io.*;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ public class Node {
     int identifier, predecessor, successor;
     Integer[] fingerTable;
     ServerSocket listener;
+    Socket socket = null;
 
     /**
      * Creates a chord.Node thread and sets its initial finger table.
@@ -25,10 +27,12 @@ public class Node {
         this.identifier = identifier;
         fingerTable = new Integer[Main.BITS];
         try {
+
             listener = new ServerSocket(Coordinator.BASE_PORT + identifier);
             new Listener().start();
         } catch (IOException e) {
-            e.printStackTrace();
+            if (!(e instanceof BindException))
+                e.printStackTrace();
         }
 
     }
@@ -39,7 +43,6 @@ public class Node {
     private class Listener extends Thread {
         @Override
         public void run() {
-            Socket socket = null;
 
             try {
                 while (true) {
@@ -101,6 +104,7 @@ public class Node {
                     }
                 }
             } catch (IOException e) {
+                e.printStackTrace();
             } finally {
             }
 
@@ -318,13 +322,13 @@ public class Node {
     private Integer sendAndWait(String message, int port) {
 
         try {
-            Socket socket = new Socket("127.0.0.1", port);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            Socket sendSocket = new Socket("127.0.0.1", port);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(sendSocket.getInputStream()));
+            PrintWriter writer = new PrintWriter(sendSocket.getOutputStream(), true);
             writer.println(message);
 
             String response = reader.readLine();
-            socket.close();
+            sendSocket.close();
             return Integer.parseInt(response);
 
         } catch (IOException e) {
@@ -337,14 +341,13 @@ public class Node {
     private void sendAck(String message) {
 
         try {
-            Socket socket = new Socket("127.0.0.1", Coordinator.COORDINATOR_PORT);
-            PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            Socket sendSocket = new Socket("127.0.0.1", Coordinator.COORDINATOR_PORT);
+            PrintWriter writer = new PrintWriter(sendSocket.getOutputStream(), true);
             writer.println("ack " + message);
-            socket.close();
+            sendSocket.close();
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-
 }
